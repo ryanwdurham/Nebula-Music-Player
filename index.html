@@ -17,11 +17,6 @@
       background: #a855f7;
       cursor: pointer;
     }
-    @media (max-width: 768px) {
-      .mobile-stack { flex-direction: column; }
-      .mobile-full { width: 100% !important; }
-      .mobile-hidden { display: none; }
-    }
   </style>
 </head>
 <body class="bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950">
@@ -47,13 +42,13 @@
     };
 
     const icons = {
-      Play: (size = 32) => h('svg', { width: size, height: size, viewBox: '0 0 24 24', fill: 'currentColor' },
+      Play: () => h('svg', { width: 32, height: 32, viewBox: '0 0 24 24', fill: 'currentColor' },
         h('path', { d: 'M8 5v14l11-7z' })),
-      Pause: (size = 32) => h('svg', { width: size, height: size, viewBox: '0 0 24 24', fill: 'currentColor' },
+      Pause: () => h('svg', { width: 32, height: 32, viewBox: '0 0 24 24', fill: 'currentColor' },
         h('path', { d: 'M6 4h4v16H6V4zm8 0h4v16h-4V4z' })),
-      SkipForward: (size = 24) => h('svg', { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2 },
+      SkipForward: () => h('svg', { width: 24, height: 24, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2 },
         h('path', { d: 'M5 4l10 8-10 8V4zM19 5v14' })),
-      SkipBack: (size = 24) => h('svg', { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2 },
+      SkipBack: () => h('svg', { width: 24, height: 24, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2 },
         h('path', { d: 'M19 20L9 12l10-8v16zM5 19V5' })),
       Volume2: () => h('svg', { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2 },
         h('path', { d: 'M11 5L6 9H2v6h4l5 4V5zM19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07' })),
@@ -63,9 +58,9 @@
         h('path', { d: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01' })),
       Plus: () => h('svg', { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2 },
         h('path', { d: 'M12 5v14M5 12h14' })),
-      Shuffle: () => h('svg', { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2 },
+      Shuffle: () => h('svg', { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2 },
         h('path', { d: 'M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5' })),
-      Repeat: () => h('svg', { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2 },
+      Repeat: () => h('svg', { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2 },
         h('path', { d: 'M17 1l4 4-4 4M3 11V9a4 4 0 014-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 01-4 4H3' })),
       Palette: () => h('svg', { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2 },
         h('path', { d: 'M12 2a10 10 0 0 0-9.95 9h11.64L9.74 7.05a1 1 0 0 1 1.41-1.41l5.66 5.65a1 1 0 0 1 0 1.42l-5.66 5.65a1 1 0 0 1-1.41 0 1 1 0 0 1 0-1.41L13.69 13H2.05A10 10 0 1 0 12 2z' }))
@@ -79,7 +74,7 @@
       const [duration, setDuration] = useState(0);
       const [volume, setVolume] = useState(0.7);
       const [isMuted, setIsMuted] = useState(false);
-      const [showPlaylist, setShowPlaylist] = useState(false);
+      const [showPlaylist, setShowPlaylist] = useState(true);
       const [shuffle, setShuffle] = useState(false);
       const [repeat, setRepeat] = useState(false);
       const [theme, setTheme] = useState('nebula');
@@ -109,14 +104,12 @@
 
         const updateTime = () => {
           setCurrentTime(audio.currentTime);
-          
           if (!isCrossfading.current && !repeat && duration > 10 && (duration - audio.currentTime) <= 10 && (duration - audio.currentTime) > 9.9) {
             startCrossfade();
           }
         };
         
         const updateDuration = () => setDuration(audio.duration);
-        
         const handleEnded = () => {
           if (repeat && !isCrossfading.current) {
             audio.currentTime = 0;
@@ -139,12 +132,10 @@
 
       const startCrossfade = () => {
         if (isCrossfading.current || repeat || playlist.length <= 1) return;
-        
         const next = getNextTrack();
         if (!next) return;
 
         isCrossfading.current = true;
-
         const currentAudio = audioRef.current;
         const nextAudio = nextAudioRef.current;
         
@@ -155,31 +146,25 @@
         let step = 0;
         const totalSteps = 100;
 
-        if (fadeIntervalRef.current) {
-          clearInterval(fadeIntervalRef.current);
-        }
+        if (fadeIntervalRef.current) clearInterval(fadeIntervalRef.current);
 
         fadeIntervalRef.current = setInterval(() => {
           step++;
           const progress = step / totalSteps;
-          
           currentAudio.volume = Math.max(0, volume * (1 - progress));
           nextAudio.volume = Math.min(volume, volume * progress);
 
           if (step >= totalSteps) {
             clearInterval(fadeIntervalRef.current);
             fadeIntervalRef.current = null;
-            
             currentAudio.pause();
             currentAudio.src = next.url;
             currentAudio.currentTime = nextAudio.currentTime;
             currentAudio.volume = volume;
             currentAudio.play().catch(e => console.error('Audio play error:', e));
-            
             nextAudio.pause();
             nextAudio.currentTime = 0;
             nextAudio.src = '';
-            
             setCurrentTrack(next);
             isCrossfading.current = false;
           }
@@ -189,12 +174,7 @@
       const getNextTrack = () => {
         if (playlist.length === 0) return null;
         const currentIdx = playlist.findIndex(t => t.id === currentTrack?.id);
-        let nextIdx;
-        if (shuffle) {
-          nextIdx = Math.floor(Math.random() * playlist.length);
-        } else {
-          nextIdx = (currentIdx + 1) % playlist.length;
-        }
+        let nextIdx = shuffle ? Math.floor(Math.random() * playlist.length) : (currentIdx + 1) % playlist.length;
         return playlist[nextIdx];
       };
 
@@ -207,9 +187,7 @@
           url: URL.createObjectURL(file)
         }));
         setPlaylist([...playlist, ...newTracks]);
-        if (!currentTrack && newTracks.length > 0) {
-          setCurrentTrack(newTracks[0]);
-        }
+        if (!currentTrack && newTracks.length > 0) setCurrentTrack(newTracks[0]);
         if (isMobile) setShowPlaylist(false);
       };
 
@@ -221,7 +199,6 @@
         isCrossfading.current = false;
         nextAudioRef.current.pause();
         nextAudioRef.current.src = '';
-        
         setCurrentTrack(track);
         setIsPlaying(true);
         if (isMobile) setShowPlaylist(false);
@@ -233,11 +210,8 @@
 
       const togglePlay = () => {
         if (!currentTrack) return;
-        if (isPlaying) {
-          audioRef.current?.pause();
-        } else {
-          audioRef.current?.play();
-        }
+        if (isPlaying) audioRef.current?.pause();
+        else audioRef.current?.play();
         setIsPlaying(!isPlaying);
       };
 
@@ -316,14 +290,14 @@
                 h('button', {
                   onClick: () => fileInputRef.current?.click(),
                   className: `px-3 sm:px-4 py-2 rounded-lg bg-gradient-to-r from-${accentColor}-600 to-pink-600 hover:from-${accentColor}-500 hover:to-pink-500 transition-all flex items-center gap-2 text-sm sm:text-base`
-                }, h(icons.Plus), isMobile ? '' : ' Add Music')
+                }, h(icons.Plus), h('span', { className: 'hidden sm:inline' }, ' Add Music'))
               )
             )
           ),
           h('div', { className: showPlaylist && !isMobile ? 'flex' : 'block' },
-            !showPlaylist && h('div', { className: 'p-4 sm:p-8' },
+            h('div', { className: `${showPlaylist && !isMobile ? 'w-2/3' : 'w-full'} p-4 sm:p-8` },
               h('div', { className: 'relative mb-6 sm:mb-8' },
-                h('div', { className: `w-full aspect-square max-w-sm mx-auto rounded-2xl bg-gradient-to-br from-${accentColor}-600/30 to-pink-600/30 border border-${accentColor}-500/30 flex items-center justify-center overflow-hidden` },
+                h('div', { className: `w-full aspect-square max-w-md mx-auto rounded-2xl bg-gradient-to-br from-${accentColor}-600/30 to-pink-600/30 border border-${accentColor}-500/30 flex items-center justify-center overflow-hidden` },
                   currentTrack ? h('div', { className: 'text-center p-6 sm:p-8' },
                     h('div', { className: `w-24 h-24 sm:w-32 sm:h-32 mx-auto mb-4 rounded-full bg-gradient-to-br from-${accentColor}-500 to-pink-500 animate-pulse` }),
                     h('h2', { className: 'text-xl sm:text-2xl font-bold mb-2 px-4' }, currentTrack.name),
@@ -359,21 +333,21 @@
                 h('button', {
                   onClick: handlePrev,
                   className: `p-3 sm:p-4 rounded-full bg-${accentColor}-500/20 hover:bg-${accentColor}-500/40 transition-all`
-                }, h(icons.SkipBack, 20)),
+                }, h(icons.SkipBack)),
                 h('button', {
                   onClick: togglePlay,
                   className: `p-4 sm:p-6 rounded-full bg-gradient-to-r from-${accentColor}-600 to-pink-600 hover:from-${accentColor}-500 hover:to-pink-500 transition-all shadow-lg shadow-${accentColor}-500/50`
-                }, isPlaying ? h(icons.Pause, 28) : h(icons.Play, 28)),
+                }, isPlaying ? h(icons.Pause) : h(icons.Play)),
                 h('button', {
                   onClick: handleNext,
                   className: `p-3 sm:p-4 rounded-full bg-${accentColor}-500/20 hover:bg-${accentColor}-500/40 transition-all`
-                }, h(icons.SkipForward, 20)),
+                }, h(icons.SkipForward)),
                 h('button', {
                   onClick: () => setRepeat(!repeat),
                   className: `p-2 sm:p-3 rounded-lg transition-all ${repeat ? `bg-${accentColor}-500/40 text-white` : `bg-${accentColor}-500/10 text-${accentColor}-300 hover:bg-${accentColor}-500/20`}`
                 }, h(icons.Repeat))
               ),
-              h('div', { className: 'flex items-center gap-3 sm:gap-4 max-w-xs mx-auto px-4' },
+              h('div', { className: 'flex items-center gap-3 sm:gap-4 max-w-xs mx-auto px-4 sm:px-0' },
                 h('button', {
                   onClick: toggleMute,
                   className: `text-${accentColor}-300 hover:text-white transition-colors`
@@ -389,7 +363,7 @@
                 })
               )
             ),
-            showPlaylist && h('div', { className: `${isMobile ? 'w-full' : 'w-full'} bg-black/40 ${isMobile ? '' : 'border-l'} border-${accentColor}-500/30 p-4 sm:p-6 ${isMobile ? 'min-h-screen' : 'max-h-[600px]'} overflow-y-auto` },
+            showPlaylist && h('div', { className: `${isMobile ? 'w-full' : 'w-1/3'} bg-black/40 ${isMobile ? '' : 'border-l'} border-${accentColor}-500/30 p-4 sm:p-6 ${isMobile ? 'min-h-screen' : 'max-h-[600px]'} overflow-y-auto` },
               h('h3', { className: `text-lg sm:text-xl font-bold mb-4 text-${accentColor}-300` }, 'Playlist'),
               playlist.length === 0
                 ? h('p', { className: `text-${accentColor}-300/50 text-center mt-8 text-sm` }, 'No tracks yet')
