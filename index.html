@@ -104,7 +104,7 @@
 
         const updateTime = () => {
           setCurrentTime(audio.currentTime);
-          if (!isCrossfading.current && !repeat && duration > 10 && (duration - audio.currentTime) <= 10 && (duration - audio.currentTime) > 9.9) {
+          if (!isCrossfading.current && !repeat && duration > 10 && (duration - audio.currentTime) <= 18 && (duration - audio.currentTime) > 17.9) {
             startCrossfade();
           }
         };
@@ -130,46 +130,91 @@
         };
       }, [duration, repeat, currentTrack, playlist, shuffle]);
 
-      const startCrossfade = () => {
-        if (isCrossfading.current || repeat || playlist.length <= 1) return;
-        const next = getNextTrack();
-        if (!next) return;
+const startCrossfade = () => {
+  if (isCrossfading.current || repeat || playlist.length <= 1) return;
+  const next = getNextTrack();
+  if (!next) return;
 
-        isCrossfading.current = true;
-        const currentAudio = audioRef.current;
-        const nextAudio = nextAudioRef.current;
+  console.log('Starting 18-second crossfade to:', next.name);
+  isCrossfading.current = true;
+  
+  const currentAudio = audioRef.current;
+  const nextAudio = nextAudioRef.current;
+  
+  // Preload next track
+  nextAudio.src = next.url;
+  nextAudio.volume = 0;
+  nextAudio.load();
+  
+  const startFade = () => {
+    nextAudio.play().catch(e => {
+      console.error('Next audio play error:', e);
+      isCrossfading.current = false;
+      return;
+    });
+
+    let step = 0;
+    const totalSteps = 180; // 18 seconds at 100ms intervals
+
+    if (fadeIntervalRef.current) clearInterval(fadeIntervalRef.current);
+
+    fadeIntervalRef.current = setInterval(() => {
+      step++;
+      const progress = step / totalSteps;
+      
+      // Smooth fade out current, fade in next
+      if (currentAudio && !currentAudio.paused) {
+        currentAudio.volume = Math.max(0, volume * (1 - progress));
+      }
+      nextAudio.volume = Math.min(volume, volume * progress);
+
+      if (step >= totalSteps) {
+        clearInterval(fadeIntervalRef.current);
+        fadeIntervalRef.current = null;
         
-        nextAudio.src = next.url;
-        nextAudio.volume = 0;
-        nextAudio.play().catch(e => console.error('Next audio play error:', e));
-
-        let step = 0;
-        const totalSteps = 100;
-
-        if (fadeIntervalRef.current) clearInterval(fadeIntervalRef.current);
-
-        fadeIntervalRef.current = setInterval(() => {
-          step++;
-          const progress = step / totalSteps;
-          currentAudio.volume = Math.max(0, volume * (1 - progress));
-          nextAudio.volume = Math.min(volume, volume * progress);
-
-          if (step >= totalSteps) {
-            clearInterval(fadeIntervalRef.current);
-            fadeIntervalRef.current = null;
-            currentAudio.pause();
-            currentAudio.src = next.url;
-            currentAudio.currentTime = nextAudio.currentTime;
-            currentAudio.volume = volume;
-            currentAudio.play().catch(e => console.error('Audio play error:', e));
-            nextAudio.pause();
-            nextAudio.currentTime = 0;
-            nextAudio.src = '';
-            setCurrentTrack(next);
-            isCrossfading.current = false;
-          }
-        }, 100);
-      };
+        // Silently stop the old track
+        currentAudio.pause();
+        currentAudio.src = '';
+        currentAudio.currentTime = 0;
+        
+        // Transfer nextAudio to main audioRef WITHOUT reloading
+        // This is the key - we swap the actual DOM elements, not just refs
+        const tempSrc = nextAudio.src;
+        const tempTime = nextAudio.currentTime;
+        
+        audioRef.current = nextAudio;
+        nextAudioRef.current = currentAudio;
+        audioRef.current.volume = volume;
+        
+        // Update state
+        setCurrentTrack(next);
+        setIsPlaying(true);
+        isCrossfading.current = false;
+        
+        console.log('Seamless crossfade complete - no pause!');
+      }
+    }, 100);
+  };
+  
+  // Start fade when ready
+  if (nextAudio.readyState >= 3) {
+    startFade();
+  } else {
+    const onReady = () => {
+      nextAudio.removeEventListener('canplay', onReady);
+      startFade();
+    };
+    nextAudio.addEventListener('canplay', onReady);
+    
+    // Fallback
+    setTimeout(() => {
+      if (isCrossfading.current && nextAudio.readyState >= 2) {
+        nextAudio.removeEventListener('canplay', onReady);
+        startFade();
+      }
+    }, 2000);
+  }
+};
 
       const getNextTrack = () => {
         if (playlist.length === 0) return null;
@@ -266,7 +311,10 @@
         h('div', { className: 'backdrop-blur-xl bg-black/40 rounded-3xl shadow-2xl border border-purple-500/20 overflow-hidden' },
           h('div', { className: `bg-gradient-to-r from-${accentColor}-900/50 to-pink-900/50 p-4 sm:p-6 border-b border-${accentColor}-500/30` },
             h('div', { className: 'flex items-center justify-between' },
-              h('h1', { className: `text-2xl sm:text-3xl font-bold bg-gradient-to-r from-${accentColor}-400 to-pink-400 bg-clip-text text-transparent` }, 'NEBULA'),
+             h('h1', { className: `text-2xl sm:text-3xl font-bold bg-gradient-to-r from-${accentColor}-400 to-pink-400 bg-clip-text text-transparent` }, 
+  h('span', { className: 'hidden sm:inline' }, 'NEBULA MUSIC PLAYER'),
+  h('span', { className: 'sm:hidden' }, 'NEBULA PLAYER')
+),
               h('div', { className: 'flex gap-2 sm:gap-3' },
                 h('div', { className: 'relative' },
                   h('button', {
@@ -404,3 +452,5 @@
   </script>
 </body>
 </html>
+
+
